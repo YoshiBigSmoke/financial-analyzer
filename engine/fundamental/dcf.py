@@ -105,7 +105,9 @@ def run_dcf(
             print(f"[{ticker}] DCF: no se puede calcular CAGR.", file=sys.stderr, flush=True)
             return None
         # Limitamos el crecimiento para no volvernos locos con empresas en racha
-        growth_rate = max(min(cagr, 0.30), -0.10)
+        # Floor en 0%: si el FCF histórico decrece asumimos crecimiento plano,
+        # no declive perpetuo (evita valuaciones irreales para empresas rentables)
+        growth_rate = max(min(cagr, 0.30), 0.0)
 
     base_fcf = fcfs[-1]  # FCF más reciente como punto de partida
 

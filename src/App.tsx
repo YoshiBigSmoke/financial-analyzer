@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useEngine } from "./hooks/useEngine";
 import { FundamentalPanel } from "./components/FundamentalPanel";
@@ -23,7 +23,9 @@ export default function App() {
   const [inputVal,    setInputVal]    = useState("");
   const [page,        setPage]        = useState<Page>("fundamental");
   const [loadMsg,     setLoadMsg]     = useState<string | null>(null);
+  const [loadError,   setLoadError]   = useState<string | null>(null);
   const [backendOk,   setBackendOk]   = useState<boolean | null>(null);
+  const analyzeId = useRef(0);  // cada análisis tiene un ID único; si cambia, el anterior se abandona
 
   const fundamental = useEngine();
   const technical   = useEngine();
@@ -40,34 +42,54 @@ export default function App() {
     }
   }
 
+  // ── Cancelar análisis en curso ──────────────────────────────
+  function handleCancel() {
+    analyzeId.current++;   // invalida el análisis activo
+    setLoadMsg(null);
+    setLoadError(null);
+  }
+
   // ── Carga y análisis del ticker ─────────────────────────────
   async function handleAnalyze() {
     const t = inputVal.trim().toUpperCase();
     if (!t) return;
+
+    const myId = ++analyzeId.current;   // ID de este análisis
+    const alive = () => analyzeId.current === myId;
+
     setTicker(t);
     setPage("chart");
+    setLoadError(null);
     setLoadMsg(`✨ Buscando ${t} en los mercados...`);
 
     // 1. Descargar datos
     try {
       await invoke("run_engine", { command: "load_ticker", args: { ticker: t, period: "5y" } });
     } catch (e) {
-      setLoadMsg(`Error al cargar: ${e}`);
+      if (alive()) {
+        setLoadMsg(null);                    // salir del estado de carga
+        setLoadError(String(e));             // mostrar error limpiamente
+      }
       return;
     }
+    if (!alive()) return;
 
     // 2. Análisis secuencial — DuckDB no permite múltiples escritores simultáneos
     setLoadMsg(`📈 Cargando precios de ${t}...`);
     await prices.call("prices", { ticker: t });
+    if (!alive()) return;
 
     setLoadMsg(`💎 Analizando fundamentos de ${t}...`);
     await fundamental.call("fundamental", { ticker: t });
+    if (!alive()) return;
 
     setLoadMsg(`📊 Calculando señales técnicas...`);
     await technical.call("technical", { ticker: t });
+    if (!alive()) return;
 
     setLoadMsg(`🔮 Corriendo 100k simulaciones Monte Carlo...`);
     await quant.call("quant", { ticker: t, horizon: 126, simulations: 100_000 });
+    if (!alive()) return;
 
     setLoadMsg(null);
   }
@@ -120,6 +142,17 @@ export default function App() {
 
   function renderContent() {
     if (isLoading) return <Spinner label={loadMsg ?? "Cargando..."} />;
+
+    if (loadError) return (
+      <div className="load-error-wrap">
+        <span className="load-error-icon">⚠️</span>
+        <p className="load-error-msg">{loadError}</p>
+        <button className="btn-primary" style={{ marginTop: 8 }}
+          onClick={() => { setLoadError(null); setTicker(""); }}>
+          Intentar con otro ticker
+        </button>
+      </div>
+    );
 
     // Gráfica: ocupa todo el espacio sin scroll propio
     if (page === "chart") {
@@ -187,7 +220,7 @@ export default function App() {
               value={inputVal}
               disabled={isLoading}
               onChange={e => setInputVal(e.target.value.toUpperCase())}
-              onKeyDown={e => e.key === "Enter" && handleAnalyze()}
+              onKeyDown={e => e.key === "Enter" && !isLoading && handleAnalyze()}
             />
             <button
               className="btn-primary"
@@ -196,6 +229,11 @@ export default function App() {
             >
               {isLoading ? "Cargando..." : "Analizar"}
             </button>
+            {isLoading && (
+              <button className="btn-ghost small" onClick={handleCancel}>
+                Cancelar
+              </button>
+            )}
           </div>
           {ticker && !isLoading && (
             <span className="topbar-ticker mono text-accent">{ticker}</span>

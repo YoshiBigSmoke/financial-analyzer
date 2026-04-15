@@ -97,23 +97,53 @@ def run_monte_carlo(
     prob_above = float((final_prices > current_price).mean())
     prob_below = 1.0 - prob_above
 
+    # ── Escenarios de probabilidad ───────────────────────────────────────────
+    returns_final = (final_prices - current_price) / current_price  # retorno relativo
+
+    scenario_defs = [
+        ("muy_alcista", "Muy alcista",  "🚀",  "> +20%",   returns_final > 0.20),
+        ("alcista",     "Alcista",      "📈",  "+5% a +20%", (returns_final > 0.05) & (returns_final <= 0.20)),
+        ("lateral",     "Lateral",      "➡️",  "−5% a +5%",  (returns_final >= -0.05) & (returns_final <= 0.05)),
+        ("bajista",     "Bajista",      "📉",  "−20% a −5%", (returns_final < -0.05) & (returns_final >= -0.20)),
+        ("muy_bajista", "Muy bajista",  "☠️",  "< −20%",   returns_final < -0.20),
+    ]
+
+    scenarios = []
+    for key, label, icon, rng_label, mask in scenario_defs:
+        prob = float(mask.mean())
+        subset = final_prices[mask]
+        avg_price = float(subset.mean()) if len(subset) > 0 else current_price
+        scenarios.append({
+            "key":       key,
+            "label":     label,
+            "icon":      icon,
+            "range":     rng_label,
+            "prob":      round(prob, 4),
+            "avg_price": round(avg_price, 2),
+        })
+
+    # Escenario más probable
+    most_probable = max(scenarios, key=lambda s: s["prob"])
+
     return {
-        "paths":           price_paths,
-        "final_prices":    final_prices,
-        "current_price":   current_price,
-        "horizon":         horizon,
-        "simulations":     simulations,
-        "expected_price":  round(float(np.median(final_prices)), 2),
-        "mean_price":      round(float(np.mean(final_prices)), 2),
-        "std_price":       round(float(np.std(final_prices)), 2),
-        "var_5":           round(var_5, 2),
-        "var_1":           round(var_1, 2),
-        "cvar_5":          round(cvar_5, 2),
-        "percentiles":     percentiles,
-        "prob_above":      round(prob_above, 4),
-        "prob_below":      round(prob_below, 4),
-        "daily_vol_pct":   daily_vol_pct,
-        "drift_pct":       mu,
+        "paths":              price_paths,
+        "final_prices":       final_prices,
+        "current_price":      current_price,
+        "horizon":            horizon,
+        "simulations":        simulations,
+        "expected_price":     round(float(np.median(final_prices)), 2),
+        "mean_price":         round(float(np.mean(final_prices)), 2),
+        "std_price":          round(float(np.std(final_prices)), 2),
+        "var_5":              round(var_5, 2),
+        "var_1":              round(var_1, 2),
+        "cvar_5":             round(cvar_5, 2),
+        "percentiles":        percentiles,
+        "prob_above":         round(prob_above, 4),
+        "prob_below":         round(prob_below, 4),
+        "daily_vol_pct":      daily_vol_pct,
+        "drift_pct":          mu,
+        "scenarios":          scenarios,
+        "most_probable":      most_probable["key"],
     }
 
 

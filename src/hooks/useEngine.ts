@@ -11,6 +11,7 @@ export function useEngine<T = unknown>() {
   const call = useCallback(async (command: string, args: Record<string, unknown> = {}) => {
     setStatus("loading");
     setError(null);
+    setData(null);   // reset para no mostrar datos stale del ticker anterior
     try {
       const result = await invoke<T>("run_engine", { command, args });
       setData(result);

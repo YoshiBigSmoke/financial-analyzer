@@ -218,6 +218,34 @@
   white-space: pre-wrap;
 }
 
+/* ── Error de carga (pantalla completa) ───────────────────── */
+.load-error-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px;
+  text-align: center;
+}
+
+.load-error-icon {
+  font-size: 36px;
+}
+
+.load-error-msg {
+  color: var(--red);
+  font-size: 14px;
+  font-weight: 500;
+  max-width: 380px;
+  line-height: 1.6;
+  background: rgba(244, 63, 94, 0.08);
+  border: 1px solid var(--red);
+  border-radius: 8px;
+  padding: 14px 20px;
+}
+
 /* ── Placeholder ──────────────────────────────────────────── */
 .placeholder {
   flex: 1;

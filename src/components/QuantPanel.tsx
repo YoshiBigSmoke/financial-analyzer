@@ -46,8 +46,12 @@ export function QuantPanel({ data }: Props) {
   const arimaOrder = arima.order as number[] | undefined;
   const arimaPrices = ((arima.prices ?? {}) as Record<string, number[]>);
 
-  const probAbove = Number(mc.prob_above ?? 0);
-  const probBelow = Number(mc.prob_below ?? 0);
+  const probAbove  = Number(mc.prob_above ?? 0);
+  const probBelow  = Number(mc.prob_below ?? 0);
+
+  type Scenario = { key: string; label: string; icon: string; range: string; prob: number; avg_price: number };
+  const scenarios      = (mc.scenarios      ?? []) as Scenario[];
+  const mostProbable   = mc.most_probable   as string | undefined;
 
   return (
     <div className="panel-grid">
@@ -126,6 +130,67 @@ export function QuantPanel({ data }: Props) {
         </div>
       </div>
 
+      {/* ── Escenarios Monte Carlo ───────────────────────── */}
+      {scenarios.length > 0 && (
+        <div className="card span2">
+          <div className="card-title">🎯 Escenarios — ¿qué es más probable en {horizon} días?</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
+            {scenarios.map(sc => {
+              const isBest = sc.key === mostProbable;
+              const barColor =
+                sc.key === "muy_alcista" ? "linear-gradient(90deg,#22c55e,#86efac)" :
+                sc.key === "alcista"     ? "linear-gradient(90deg,#4ade80,#bbf7d0)" :
+                sc.key === "lateral"     ? "linear-gradient(90deg,#a78bfa,#c4b5fd)" :
+                sc.key === "bajista"     ? "linear-gradient(90deg,#fb923c,#fed7aa)" :
+                                          "linear-gradient(90deg,#f43f5e,#fb7185)";
+              const textColor =
+                sc.key === "muy_alcista" ? "var(--green)" :
+                sc.key === "alcista"     ? "var(--green)" :
+                sc.key === "lateral"     ? "var(--accent)" :
+                sc.key === "bajista"     ? "var(--orange, #fb923c)" :
+                                          "var(--red)";
+              return (
+                <div key={sc.key} style={{
+                  background: isBest ? "rgba(167,139,250,0.07)" : undefined,
+                  border: isBest ? "1px solid var(--purple)" : "1px solid transparent",
+                  borderRadius: 8,
+                  padding: "8px 12px",
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+                    <span style={{ fontSize: 16 }}>{sc.icon}</span>
+                    <span style={{ fontWeight: isBest ? 700 : 500, color: textColor, fontSize: 13 }}>
+                      {sc.label}
+                    </span>
+                    <span className="text-muted" style={{ fontSize: 11 }}>{sc.range}</span>
+                    {isBest && (
+                      <span style={{
+                        marginLeft: "auto", fontSize: 10, fontWeight: 700,
+                        background: "var(--purple)", color: "#fff",
+                        borderRadius: 10, padding: "2px 8px", letterSpacing: "0.04em",
+                      }}>MÁS PROBABLE</span>
+                    )}
+                    <span className="mono" style={{ marginLeft: isBest ? 0 : "auto", color: textColor, fontWeight: 700, fontSize: 14 }}>
+                      {(sc.prob * 100).toFixed(1)}%
+                    </span>
+                    <span className="mono text-muted" style={{ fontSize: 11 }}>avg ${fmt2(sc.avg_price)}</span>
+                  </div>
+                  <div style={{ height: 8, background: "var(--bg-elevated)", borderRadius: 4, overflow: "hidden" }}>
+                    <div style={{
+                      width: `${sc.prob * 100}%`, height: "100%",
+                      background: barColor, borderRadius: 4,
+                      transition: "width 0.8s cubic-bezier(0.34,1.56,0.64,1)",
+                    }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="text-muted" style={{ fontSize: 11, marginTop: 8, textAlign: "right" }}>
+            {(scenarios.reduce((a, s) => a + s.prob, 0) * 100).toFixed(1)}% total · {(mc.simulations as number)?.toLocaleString()} simulaciones
+          </div>
+        </div>
+      )}
+
       {/* ── Cono de precios ──────────────────────────────── */}
       <div className="card">
         <div className="card-title">🔭 Cono de precios — día {horizon}</div>
@@ -158,20 +223,29 @@ export function QuantPanel({ data }: Props) {
             </tr>
           </thead>
           <tbody>
-            {[0, 4, 9, 19, 29].map(i => {
-              const prices = arimaPrices.prices ?? [];
-              const lower  = arimaPrices.prices_lower ?? [];
-              const upper  = arimaPrices.prices_upper ?? [];
-              if (i >= prices.length) return null;
-              return (
+            {(() => {
+              const pArr = arimaPrices.prices       ?? [];
+              const lArr = arimaPrices.prices_lower ?? [];
+              const uArr = arimaPrices.prices_upper ?? [];
+              const h    = pArr.length;
+              if (h === 0) return null;
+              // Hitos adaptativos: día 1, 10, 30, mitad, fin
+              const idxs = [...new Set([
+                0,
+                Math.min(9,  h - 1),
+                Math.min(29, h - 1),
+                Math.round(h / 2) - 1,
+                h - 1,
+              ])].sort((a, b) => a - b);
+              return idxs.map(i => (
                 <tr key={i}>
                   <td className="text-muted">Día {i + 1}</td>
-                  <td className="mono">${fmt2(prices[i])}</td>
-                  <td className="mono text-red">${fmt2(lower[i])}</td>
-                  <td className="mono text-green">${fmt2(upper[i])}</td>
+                  <td className="mono">${fmt2(pArr[i])}</td>
+                  <td className="mono text-red">${fmt2(lArr[i])}</td>
+                  <td className="mono text-green">${fmt2(uArr[i])}</td>
                 </tr>
-              );
-            })}
+              ));
+            })()}
           </tbody>
         </table>
       </div>
