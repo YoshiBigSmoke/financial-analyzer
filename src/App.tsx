@@ -75,21 +75,8 @@ export default function App() {
   // ── Estado de carga global ──────────────────────────────────
   const isLoading = loadMsg !== null;
 
-  function renderContent() {
-    if (isLoading) return <Spinner label={loadMsg ?? "Cargando..."} />;
-
-    if (page === "chart") {
-      if (prices.status === "error") return <div className="error-box">{prices.error}</div>;
-      if (!prices.data)              return ticker ? <Spinner /> : null;
-      return (
-        <ChartPage
-          prices={prices.data as never}
-          quantData={quant.data as never}
-          ticker={ticker}
-        />
-      );
-    }
-
+  // Contenido del panel actual (sin wrapper de scroll)
+  function renderPanel() {
     if (!ticker) {
       return (
         <div className="placeholder">
@@ -104,25 +91,21 @@ export default function App() {
         </div>
       );
     }
-
     if (page === "fundamental") {
       if (fundamental.status === "error") return <div className="error-box">{fundamental.error}</div>;
       if (!fundamental.data)             return <Spinner />;
       return <FundamentalPanel data={fundamental.data as never} />;
     }
-
     if (page === "technical") {
       if (technical.status === "error") return <div className="error-box">{technical.error}</div>;
       if (!technical.data)              return <Spinner />;
       return <TechnicalPanel data={technical.data as never} />;
     }
-
     if (page === "quant") {
       if (quant.status === "error") return <div className="error-box">{quant.error}</div>;
       if (!quant.data)              return <Spinner />;
       return <QuantPanel data={quant.data as never} />;
     }
-
     if (page === "watchlist") {
       return (
         <div className="placeholder">
@@ -132,8 +115,32 @@ export default function App() {
         </div>
       );
     }
-
     return null;
+  }
+
+  function renderContent() {
+    if (isLoading) return <Spinner label={loadMsg ?? "Cargando..."} />;
+
+    // Gráfica: ocupa todo el espacio sin scroll propio
+    if (page === "chart") {
+      if (prices.status === "error") return <div className="error-box">{prices.error}</div>;
+      if (!prices.data)              return ticker ? <Spinner /> : null;
+      return (
+        <ChartPage
+          prices={prices.data as never}
+          quantData={quant.data as never}
+          ticker={ticker}
+        />
+      );
+    }
+
+    // Panels: div de scroll separado del flex container
+    // key={page} resetea el scroll al cambiar de panel
+    return (
+      <div key={page} className="panel-scroll">
+        {renderPanel()}
+      </div>
+    );
   }
 
   return (
@@ -195,7 +202,7 @@ export default function App() {
           )}
         </header>
 
-        <section className={`content ${page !== "chart" ? "scrollable" : ""}`}>
+        <section className="content">
           {renderContent()}
         </section>
       </main>
