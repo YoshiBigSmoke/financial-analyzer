@@ -1,28 +1,40 @@
-# Python
-__pycache__/
-*.py[cod]
-*.egg-info/
-venv/
-.env
-
-# DuckDB
-data/db/*.duckdb
-data/db/*.duckdb.wal
-
-# Parquet (datos descargados, no van en git)
-data/parquet/
-
-# Node / React
+# ── Node / Frontend ───────────────────────────────────────────
 node_modules/
 dist/
-.next/
+.vite/
 
-# Venv Python
-venv/
-
-# Tauri / Rust
+# ── Tauri / Rust ──────────────────────────────────────────────
 src-tauri/target/
+src-tauri/gen/
 
-# Sistema
-.DS_Store
+# ── Python ────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+*.egg-info/
+.Python
+
+# ── DuckDB — datos locales, no van al repo ────────────────────
+data/
+
+# ── Logs y temporales ─────────────────────────────────────────
 *.log
+*.tmp
+*.bak
+
+# ── Editor ────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Env / secretos ────────────────────────────────────────────
+.env
+.env.local
+.env.*
