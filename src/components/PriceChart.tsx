@@ -117,11 +117,32 @@ export function PriceChart({ prices, cone, horizon = 30, showBands = true }: Pro
     if (!el) return;
     const ro = new ResizeObserver(entries => {
       const h = Math.round(entries[0].contentRect.height);
-      if (h > 120) setContH(h);   // ignorar valores absurdamente pequeños
+      if (h > 120) setContH(h);
     });
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  // ── Zoom con rueda del mouse ──────────────────────────────────────────────
+  const [zoomBars, setZoomBars] = useState(MAX_BARS);
+
+  useEffect(() => {
+    setZoomBars(Math.min(MAX_BARS, prices.length || MAX_BARS));
+  }, [prices]);
+
+  useEffect(() => {
+    const el = outerRef.current;
+    if (!el) return;
+    function handleWheel(e: WheelEvent) {
+      e.preventDefault();
+      const factor = e.deltaY > 0 ? 1.15 : 1 / 1.15;  // rueda abajo → zoom out
+      setZoomBars(prev =>
+        Math.round(Math.min(prices.length || MAX_BARS, Math.max(20, prev * factor)))
+      );
+    }
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => el.removeEventListener("wheel", handleWheel);
+  }, [prices]);
 
   // ── Cálculo de datos + layout ────────────────────────────────────────────
   const data = useMemo(() => {
@@ -130,7 +151,7 @@ export function PriceChart({ prices, cone, horizon = 30, showBands = true }: Pro
     const CH      = Math.max(120, contH - PAD.top - PAD.bottom - VH - GAP);
     const TOTAL_H = PAD.top + CH + GAP + VH + PAD.bottom;
 
-    const hist = prices.length > MAX_BARS ? prices.slice(-MAX_BARS) : prices;
+    const hist = prices.length > zoomBars ? prices.slice(-zoomBars) : prices;
     if (hist.length === 0) return null;
 
     const closes  = hist.map(p => p.adj_close);
@@ -192,7 +213,7 @@ export function PriceChart({ prices, cone, horizon = 30, showBands = true }: Pro
       // layout dinámico para el render
       CH, VH, TOTAL_H,
     };
-  }, [prices, cone, horizon, contH]);
+  }, [prices, cone, horizon, contH, zoomBars]);
 
   if (!data) return null;
 
@@ -212,8 +233,16 @@ export function PriceChart({ prices, cone, horizon = 30, showBands = true }: Pro
   return (
     <div
       ref={outerRef}
-      style={{ width: "100%", height: "100%", background: C.bg }}
+      style={{ width: "100%", height: "100%", background: C.bg, position: "relative" }}
     >
+      {/* Indicador de zoom */}
+      <div style={{
+        position: "absolute", top: 8, right: 12, zIndex: 10,
+        fontSize: 10, color: "rgba(255,255,255,0.35)", pointerEvents: "none",
+        fontFamily: "monospace",
+      }}>
+        {hist.length}d · scroll para zoom
+      </div>
       <svg
         viewBox={`0 0 ${TW} ${TOTAL_H}`}
         width={TW}
