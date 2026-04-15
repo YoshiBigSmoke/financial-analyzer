@@ -1,0 +1,27 @@
+# Motor de análisis — dependencias Python
+
+# DataFrames rápidos (Rust internamente)
+polars
+
+# Matemáticas y estadística
+numpy
+scipy
+
+# Modelos estadísticos y financieros
+statsmodels
+
+# Machine Learning
+scikit-learn
+torch
+
+# Datos de mercado
+yfinance
+
+# Análisis técnico (C internamente)
+TA-Lib
+
+# Base de datos embebida OLAP
+duckdb
+
+# Serialización Parquet
+pyarrow

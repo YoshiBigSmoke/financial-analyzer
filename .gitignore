@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+venv/
+.env
+
+# DuckDB
+data/db/*.duckdb
+data/db/*.duckdb.wal
+
+# Parquet (datos descargados, no van en git)
+data/parquet/
+
+# Node / React
+node_modules/
+dist/
+.next/
+
+# Venv Python
+venv/
+
+# Tauri / Rust
+src-tauri/target/
+
+# Sistema
+.DS_Store
+*.log
