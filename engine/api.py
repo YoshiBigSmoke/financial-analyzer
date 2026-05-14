@@ -11,6 +11,7 @@ Comandos disponibles:
   watchlist     {}
   add_watchlist {"ticker": "AAPL", "notes": "..."}
   prices        {"ticker": "AAPL"}
+  macro         {}   | {"refresh": true}
 """
 
 import sys
@@ -128,6 +129,57 @@ def cmd_add_watchlist(conn, args):
     _ok({"added": ticker})
 
 
+def cmd_macro(conn, args):
+    from engine.macro.fetcher  import fetch_all
+    from engine.macro.analyzer import analyze
+    from datetime import datetime
+
+    force_refresh = args.get("refresh", False)
+    fetch_errors: dict = {}
+
+    # ── Verificar frescura del caché (TTL = 24 h) ─────────────────────────
+    cache_stale = True
+    try:
+        row = conn.execute("SELECT MIN(fetched_at) FROM macro_cache").fetchone()
+        oldest = row[0] if row else None
+        if oldest is not None:
+            if isinstance(oldest, str):
+                oldest = datetime.fromisoformat(oldest)
+            cache_stale = (datetime.now() - oldest).total_seconds() > 86_400
+    except Exception:
+        cache_stale = True
+
+    if cache_stale or force_refresh:
+        fetched = fetch_all(limit=24)
+        series_data = fetched["data"]
+        fetch_errors = fetched.get("errors", {})
+
+        conn.execute("DELETE FROM macro_cache")
+        for sid, rows in series_data.items():
+            for r in rows:
+                conn.execute(
+                    "INSERT INTO macro_cache (series_id, date, value) VALUES (?, ?, ?)",
+                    [sid, r["date"], r["value"]],
+                )
+    else:
+        rows = conn.execute(
+            "SELECT series_id, date, value FROM macro_cache ORDER BY series_id, date"
+        ).fetchall()
+        series_data: dict = {}
+        for sid, date, value in rows:
+            series_data.setdefault(sid, []).append(
+                {"date": str(date), "value": float(value)}
+            )
+
+    result = analyze(series_data)
+
+    ts_row = conn.execute("SELECT MAX(fetched_at) FROM macro_cache").fetchone()
+    result["last_updated"] = str(ts_row[0]) if ts_row and ts_row[0] else None
+    result["fetch_errors"] = fetch_errors
+
+    _ok(result)
+
+
 # ── Dispatch ───────────────────────────────────────────────────────────────
 
 COMMANDS = {
@@ -138,6 +190,7 @@ COMMANDS = {
     "prices":        cmd_prices,
     "watchlist":     cmd_watchlist,
     "add_watchlist": cmd_add_watchlist,
+    "macro":         cmd_macro,
 }
 
 

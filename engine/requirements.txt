@@ -16,6 +16,7 @@ torch
 
 # Datos de mercado
 yfinance
+requests
 
 # Análisis técnico (C internamente)
 TA-Lib

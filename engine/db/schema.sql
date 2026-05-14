@@ -149,3 +149,14 @@ CREATE TABLE IF NOT EXISTS watchlist (
 -- ------------------------------------------------------------
 CREATE SEQUENCE IF NOT EXISTS seq_intrinsic_value START 1;
 ALTER TABLE intrinsic_value ALTER COLUMN id SET DEFAULT nextval('seq_intrinsic_value');
+
+-- ------------------------------------------------------------
+-- Caché de series macro (FRED) — TTL gestionado en Python
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS macro_cache (
+    series_id   VARCHAR  NOT NULL,
+    date        DATE     NOT NULL,
+    value       DOUBLE,
+    fetched_at  TIMESTAMP DEFAULT current_timestamp,
+    PRIMARY KEY (series_id, date)
+);

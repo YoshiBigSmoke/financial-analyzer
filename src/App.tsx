@@ -5,12 +5,14 @@ import { FundamentalPanel } from "./components/FundamentalPanel";
 import { TechnicalPanel }   from "./components/TechnicalPanel";
 import { QuantPanel }       from "./components/QuantPanel";
 import { ChartPage }        from "./components/ChartPage";
+import { MacroPanel }       from "./components/MacroPanel";
 import { Spinner }          from "./components/Spinner";
 import "./App.css";
 
-type Page = "chart" | "fundamental" | "technical" | "quant" | "watchlist";
+type Page = "chart" | "fundamental" | "technical" | "quant" | "watchlist" | "macro";
 
-const NAV: { id: Page; label: string; emoji: string }[] = [
+const NAV: { id: Page; label: string; emoji: string; always?: boolean }[] = [
+  { id: "macro",       label: "Macro",         emoji: "🌐", always: true },
   { id: "chart",       label: "Gráfica",       emoji: "📈" },
   { id: "fundamental", label: "Fundamental",   emoji: "💎" },
   { id: "technical",   label: "Técnico",       emoji: "📊" },
@@ -31,6 +33,20 @@ export default function App() {
   const technical   = useEngine();
   const quant       = useEngine();
   const prices      = useEngine<unknown[]>();
+  const macro       = useEngine();
+
+  // ── Macro Dashboard ─────────────────────────────────────────
+  async function handleMacroLoad(refresh = false) {
+    await macro.call("macro", refresh ? { refresh: true } : {});
+  }
+
+  // ── Navegación con auto-carga de macro ───────────────────────
+  function handleNav(id: Page) {
+    setPage(id);
+    if (id === "macro" && macro.status === "idle") {
+      handleMacroLoad();
+    }
+  }
 
   // ── Ping de prueba ──────────────────────────────────────────
   async function handlePing() {
@@ -128,6 +144,17 @@ export default function App() {
       if (!quant.data)              return <Spinner />;
       return <QuantPanel data={quant.data as never} />;
     }
+    if (page === "macro") {
+      if (macro.status === "error")   return <div className="error-box">{macro.error}</div>;
+      if (!macro.data)                return <Spinner label="Cargando indicadores macro..." />;
+      return (
+        <MacroPanel
+          data={macro.data as never}
+          onRefresh={() => handleMacroLoad(true)}
+          loading={macro.status === "loading"}
+        />
+      );
+    }
     if (page === "watchlist") {
       return (
         <div className="placeholder">
@@ -184,12 +211,12 @@ export default function App() {
           <span className="logo-text">FinAnalyzer</span>
         </div>
         <nav className="nav">
-          {NAV.map(({ id, label, emoji }) => (
+          {NAV.map(({ id, label, emoji, always }) => (
             <button
               key={id}
               className={`nav-item ${page === id ? "active" : ""}`}
-              onClick={() => setPage(id)}
-              disabled={!ticker && !isLoading}
+              onClick={() => handleNav(id)}
+              disabled={!always && !ticker && !isLoading}
             >
               <span>{emoji}</span>
               <span>{label}</span>
