@@ -1,8 +1,8 @@
 """
 Fetcher: precios históricos OHLCV.
 
-Usa el endpoint v8/finance/chart de Yahoo directamente —
-NO requiere crumb ni browser impersonation, solo curl_cffi básico.
+Usa el endpoint v8/finance/chart de Yahoo directamente con curl_cffi
+browser impersonation (TLS fingerprint de Chrome) para evitar bloqueos 429.
 Intenta query1 y query2 con reintentos ante 429.
 """
 
@@ -22,14 +22,13 @@ _SESSION: cr.Session | None = None
 def _get_session() -> cr.Session:
     global _SESSION
     if _SESSION is None:
-        _SESSION = cr.Session()
-        _SESSION.headers.update({
-            "User-Agent": (
-                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
-                "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            ),
-        })
+        _SESSION = cr.Session(impersonate="chrome110")
     return _SESSION
+
+
+def reset_session() -> None:
+    global _SESSION
+    _SESSION = None
 
 
 def fetch_prices(ticker: str, period: str = "5y") -> pl.DataFrame:
@@ -42,10 +41,11 @@ def fetch_prices(ticker: str, period: str = "5y") -> pl.DataFrame:
     params = {"interval": "1d", "range": yf_period, "includeAdjustedClose": True}
 
     # (host, delay_antes_de_intentar)
-    attempts = [(h, d) for h in _HOSTS for d in (0, 3)]
+    attempts = [(h, d) for h in _HOSTS for d in (0, 5, 15)]
     r = None
     for host, delay in attempts:
         if delay > 0:
+            print(f"[prices] esperando {delay}s antes de reintentar...", file=sys.stderr)
             time.sleep(delay)
         url = f"https://{host}.finance.yahoo.com/v8/finance/chart/{ticker.upper()}"
         try:
@@ -56,7 +56,12 @@ def fetch_prices(ticker: str, period: str = "5y") -> pl.DataFrame:
             continue
         if r.status_code == 200:
             break
-        print(f"[prices] {host} HTTP {r.status_code}", file=sys.stderr)
+        if r.status_code == 429:
+            print(f"[prices] {host} HTTP 429 — rate limited", file=sys.stderr)
+            reset_session()
+            s = _get_session()
+        else:
+            print(f"[prices] {host} HTTP {r.status_code}", file=sys.stderr)
 
     if r is None or r.status_code != 200:
         return pl.DataFrame()

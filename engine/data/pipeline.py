@@ -87,14 +87,33 @@ def _try_financials(conn, ticker: str) -> bool:
 def load_ticker(conn: duckdb.DuckDBPyConnection, ticker: str, period: str = "5y") -> None:
     ticker = ticker.upper()
 
-    # 1. Precios — endpoint v8 directo, NO necesita crumb
+    # 1. Detectar tipo antes de cualquier inserción (prices tiene FK a companies)
+    import yfinance as yf
+    quote_type = yf.Ticker(ticker).fast_info.get("quoteType", "EQUITY")
+
+    # 2. Garantizar que el ticker exista en companies (requerido por FK de prices)
+    if quote_type == "ETF":
+        _log(f"[{ticker}] ETF detectado — insertando entrada base en companies...")
+        info = yf.Ticker(ticker).info
+        upsert_company(conn, {
+            "ticker":      ticker,
+            "name":        info.get("longName") or info.get("shortName") or ticker,
+            "sector":      "ETF",
+            "industry":    info.get("category") or None,
+            "country":     "USA",
+            "exchange":    info.get("exchange") or None,
+            "currency":    info.get("currency") or "USD",
+            "market_cap":  info.get("totalAssets") or None,
+            "description": info.get("longBusinessSummary") or None,
+        })
+
+    # 3. Precios — endpoint v8 directo, NO necesita crumb
     _log(f"[{ticker}] Descargando precios ({period})...")
     prices_df = fetch_prices(ticker, period=period)
     if not prices_df.is_empty():
         insert_prices(conn, prices_df)
         _log(f"[{ticker}] {len(prices_df)} filas de precios guardadas.")
     else:
-        # Si Yahoo está con rate limit, verificar si hay datos cacheados en DB
         cached = get_prices(conn, ticker)
         if not cached.is_empty():
             _log(f"[{ticker}] ⚠️  Yahoo rate limited — usando {len(cached)} filas cacheadas.")
@@ -104,12 +123,10 @@ def load_ticker(conn: duckdb.DuckDBPyConnection, ticker: str, period: str = "5y"
                 "Yahoo Finance puede estar con rate limit — intenta en unos minutos."
             )
 
-    # 2. Financials — solo para acciones, los ETFs no tienen estados financieros
-    import yfinance as yf
-    quote_type = yf.Ticker(ticker).fast_info.get("quoteType", "EQUITY")
+    # 4. Financials — solo para acciones
     if quote_type != "ETF":
         _try_financials(conn, ticker)
     else:
-        _log(f"[{ticker}] ETF detectado — omitiendo estados financieros.")
+        _log(f"[{ticker}] Omitiendo estados financieros (ETF).")
 
     _log(f"[{ticker}] Listo.")
