@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useEngine } from "./hooks/useEngine";
 import { FundamentalPanel } from "./components/FundamentalPanel";
+import { EtfPanel }         from "./components/EtfPanel";
 import { TechnicalPanel }   from "./components/TechnicalPanel";
 import { QuantPanel }       from "./components/QuantPanel";
 import { ChartPage }        from "./components/ChartPage";
@@ -132,7 +133,9 @@ export default function App() {
     if (page === "fundamental") {
       if (fundamental.status === "error") return <div className="error-box">{fundamental.error}</div>;
       if (!fundamental.data)             return <Spinner />;
-      return <FundamentalPanel data={fundamental.data as never} />;
+      const fd = fundamental.data as Record<string, unknown>;
+      if (fd.quote_type === "ETF") return <EtfPanel data={fd as never} />;
+      return <FundamentalPanel data={fd as never} />;
     }
     if (page === "technical") {
       if (technical.status === "error") return <div className="error-box">{technical.error}</div>;

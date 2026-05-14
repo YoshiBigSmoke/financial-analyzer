@@ -46,6 +46,14 @@ def cmd_load_ticker(conn, args):
 def cmd_fundamental(conn, args):
     ticker = args["ticker"].upper()
 
+    # ── Detectar ETF y derivar a análisis especializado ───────────────────
+    from engine.data.fetcher_etf import fetch_etf
+    etf_data = fetch_etf(ticker)
+    if etf_data is not None:
+        _ok(etf_data)
+        return
+
+    # ── Análisis fundamental de acción ────────────────────────────────────
     company = get_company(conn, ticker)
     ratios  = calculate_and_save_ratios(conn, ticker)
     dcf     = run_dcf(conn, ticker)
@@ -54,13 +62,11 @@ def cmd_fundamental(conn, args):
     if ratios and "period_end" in ratios:
         ratios["period_end"] = str(ratios["period_end"])
 
-    if dcf and "assumptions" in dcf:
-        dcf["assumptions"] = dcf["assumptions"]
-
     if company and "updated_at" in company:
         company["updated_at"] = str(company["updated_at"])
 
     _ok({
+        "quote_type": "EQUITY",
         "company":  company,
         "ratios":   ratios,
         "dcf":      dcf,
