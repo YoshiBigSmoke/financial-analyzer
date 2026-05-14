@@ -104,7 +104,12 @@ def load_ticker(conn: duckdb.DuckDBPyConnection, ticker: str, period: str = "5y"
                 "Yahoo Finance puede estar con rate limit — intenta en unos minutos."
             )
 
-    # 2. Financials — via yfinance + crumb; tolerante a rate limit
-    _try_financials(conn, ticker)
+    # 2. Financials — solo para acciones, los ETFs no tienen estados financieros
+    import yfinance as yf
+    quote_type = yf.Ticker(ticker).fast_info.get("quoteType", "EQUITY")
+    if quote_type != "ETF":
+        _try_financials(conn, ticker)
+    else:
+        _log(f"[{ticker}] ETF detectado — omitiendo estados financieros.")
 
     _log(f"[{ticker}] Listo.")
