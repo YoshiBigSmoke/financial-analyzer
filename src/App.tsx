@@ -1,5 +1,7 @@
 import { useState, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
+
+const IN_TAURI = "__TAURI_INTERNALS__" in window;
 import { useEngine } from "./hooks/useEngine";
 import { FundamentalPanel } from "./components/FundamentalPanel";
 import { EtfPanel }         from "./components/EtfPanel";
@@ -228,12 +230,23 @@ export default function App() {
         </nav>
 
         <div className="sidebar-footer">
-          <button className="btn-ghost small" onClick={handlePing}>
-            {backendOk === null  ? "● Backend"
-            : backendOk          ? "● Backend OK"
-            : "● Backend error"}
-          </button>
-          {backendOk !== null && (
+          {!IN_TAURI && (
+            <div style={{
+              fontSize: 10, color: "var(--yellow)", border: "1px solid var(--yellow)",
+              borderRadius: 4, padding: "3px 7px", marginBottom: 6, textAlign: "center",
+            }}>
+              ⚠ MODO PREVIEW<br/>
+              <span style={{ color: "var(--text-muted)" }}>datos de prueba (VOO)</span>
+            </div>
+          )}
+          {IN_TAURI && (
+            <button className="btn-ghost small" onClick={handlePing}>
+              {backendOk === null  ? "● Backend"
+              : backendOk          ? "● Backend OK"
+              : "● Backend error"}
+            </button>
+          )}
+          {IN_TAURI && backendOk !== null && (
             <span style={{ fontSize: 11, color: backendOk ? "var(--green)" : "var(--red)" }}>
               {backendOk ? "Rust activo" : "Sin conexión"}
             </span>

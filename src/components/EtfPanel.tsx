@@ -247,6 +247,114 @@ export function EtfPanel({ data }: { data: EtfData }) {
         </table>
       </div>
 
+      {/* ── Análisis de Valor ─────────────────────────────────── */}
+      {(() => {
+        const netYield =
+          data.dividend_yield != null && data.expense_ratio != null
+            ? parseFloat((data.dividend_yield - data.expense_ratio).toFixed(2))
+            : null;
+
+        const pe = data.valuation.pe;
+        const peLabel =
+          pe == null ? null
+          : pe < 20  ? "barato vs mercado"
+          : pe < 28  ? "en línea con mercado"
+          :             "caro vs mercado";
+        const peColor =
+          pe == null ? undefined
+          : pe < 20  ? "var(--green)"
+          : pe < 28  ? "var(--accent)"
+          :             "var(--red)";
+
+        const pd = data.premium_discount;
+        const pdColor =
+          pd == null           ? undefined
+          : Math.abs(pd) < 0.1 ? "var(--green)"
+          : pd > 0             ? "var(--yellow)"
+          :                      "var(--accent)";
+
+        let valueLabel = "";
+        let valueNote  = "";
+        if (pe != null && pd != null) {
+          if (pe < 22 && Math.abs(pd) < 0.15) {
+            valueLabel = "Precio atractivo";
+            valueNote  = "P/E bajo y cotiza cerca del NAV";
+          } else if (pe > 30 && pd > 0.3) {
+            valueLabel = "Cotiza con prima elevada";
+            valueNote  = "Portafolio caro y precio sobre el NAV";
+          } else {
+            valueLabel = "Precio razonable";
+            valueNote  = "Sin señales de sobre o subvaloración marcadas";
+          }
+        }
+
+        return (
+          <div className="card">
+            <div className="card-title">🎯 Análisis de Valor</div>
+            <table className="ratio-table">
+              <tbody>
+                {data.nav != null && (
+                  <tr>
+                    <td>NAV (valor real)</td>
+                    <td className="mono">{fmtPrice(data.nav)}</td>
+                  </tr>
+                )}
+                {pd != null && (
+                  <tr>
+                    <td>Prima / Descuento vs NAV</td>
+                    <td className="mono" style={{ color: pdColor }}>
+                      {pd > 0 ? "+" : ""}{pd.toFixed(3)}%
+                    </td>
+                  </tr>
+                )}
+                {pe != null && (
+                  <tr>
+                    <td>P/E portafolio</td>
+                    <td className="mono" style={{ color: peColor }}>
+                      {pe.toFixed(1)}x
+                      {peLabel && (
+                        <span style={{ fontSize: 11, marginLeft: 6, color: peColor }}>
+                          ({peLabel})
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                )}
+                {data.valuation.pb != null && (
+                  <tr>
+                    <td>P/B portafolio</td>
+                    <td className="mono">{data.valuation.pb.toFixed(2)}x</td>
+                  </tr>
+                )}
+                {netYield != null && (
+                  <tr>
+                    <td>Rendimiento neto anual</td>
+                    <td className="mono" style={{ color: netYield > 0 ? "var(--green)" : "var(--red)" }}>
+                      {netYield > 0 ? "+" : ""}{netYield.toFixed(2)}%
+                      <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 6 }}>
+                        (dividendo − comisión)
+                      </span>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+
+            {valueLabel && (
+              <div style={{ marginTop: 12, padding: "8px 10px",
+                background: "rgba(255,255,255,0.04)", borderRadius: 6 }}>
+                <span style={{ fontWeight: 600, color: "var(--accent)" }}>
+                  {valueLabel}
+                </span>
+                <span style={{ fontSize: 12, color: "var(--text-muted)", marginLeft: 8 }}>
+                  — {valueNote}
+                </span>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {/* ── Tamaño y liquidez ─────────────────────────────────── */}
       <div className="card">
         <div className="card-title">🏦 Tamaño y Liquidez</div>
@@ -266,25 +374,6 @@ export function EtfPanel({ data }: { data: EtfData }) {
             </tr>
           </tbody>
         </table>
-
-        {/* Valuación del portafolio */}
-        {(data.valuation.pe != null || data.valuation.pb != null) && (
-          <>
-            <div className="card-title" style={{ marginTop: 14, fontSize: 12 }}>📊 Valuación del portafolio</div>
-            <table className="ratio-table">
-              <tbody>
-                <tr>
-                  <td>P/E ponderado</td>
-                  <td className="mono">{fmt(data.valuation.pe)}</td>
-                </tr>
-                <tr>
-                  <td>P/B ponderado</td>
-                  <td className="mono">{fmt(data.valuation.pb)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </>
-        )}
       </div>
 
       {/* ── Asset Allocation ──────────────────────────────────── */}

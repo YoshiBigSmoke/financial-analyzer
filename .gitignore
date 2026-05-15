@@ -20,6 +20,8 @@ env/
 
 # ── DuckDB — datos locales, no van al repo ────────────────────
 data/
+*.duckdb
+*.duckdb.wal
 
 # ── Logs y temporales ─────────────────────────────────────────
 *.log
