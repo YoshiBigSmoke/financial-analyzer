@@ -6,6 +6,7 @@ Detecta si un ticker es ETF vía quoteType y devuelve análisis completo.
 import warnings
 from datetime import datetime
 import yfinance as yf
+from engine.data.fetcher_holdings import fetch_holdings
 
 warnings.filterwarnings("ignore")
 
@@ -215,18 +216,20 @@ def fetch_etf(ticker: str) -> dict | None:
     except Exception:
         pass
 
-    # ── Holdings (top 10) ─────────────────────────────────────────────────
-    holdings = []
-    try:
-        df = t.funds_data.top_holdings.reset_index()
-        for _, row in df.head(10).iterrows():
-            holdings.append({
-                "symbol": str(row.get("Symbol", row.iloc[0])),
-                "name":   str(row.get("Name",   row.iloc[1])),
-                "weight": round(float(row.get("Holding Percent", row.iloc[2])) * 100, 2),
-            })
-    except Exception:
-        pass
+    # ── Holdings — fuente primaria: Vanguard/iShares APIs; fallback: yfinance ──
+    holdings = fetch_holdings(ticker, info.get("fundFamily")) or []
+
+    if not holdings:
+        try:
+            df = t.funds_data.top_holdings.reset_index()
+            for _, row in df.iterrows():
+                holdings.append({
+                    "symbol": str(row.get("Symbol", row.iloc[0])),
+                    "name":   str(row.get("Name",   row.iloc[1])),
+                    "weight": round(float(row.get("Holding Percent", row.iloc[2])) * 100, 2),
+                })
+        except Exception:
+            pass
 
     # ── Sectores ──────────────────────────────────────────────────────────
     sectors = []

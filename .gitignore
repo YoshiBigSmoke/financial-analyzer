@@ -19,7 +19,6 @@ env/
 .Python
 
 # ── DuckDB — datos locales, no van al repo ────────────────────
-data/
 *.duckdb
 *.duckdb.wal
 

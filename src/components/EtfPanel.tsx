@@ -399,11 +399,16 @@ export function EtfPanel({ data }: { data: EtfData }) {
         </div>
       </div>
 
-      {/* ── Top Holdings ──────────────────────────────────────── */}
+      {/* ── Holdings ──────────────────────────────────────────── */}
       {data.holdings.length > 0 && (
         <div className="card span2">
-          <div className="card-title">🏢 Top 10 Holdings</div>
-          <div className="etf-holdings-list">
+          <div className="card-title">
+            🏢 Holdings
+            <span className="text-muted" style={{ fontSize: 12, fontWeight: 400, marginLeft: 8 }}>
+              {data.holdings.length} posiciones disponibles
+            </span>
+          </div>
+          <div className="etf-holdings-list" style={{ maxHeight: 420, overflowY: "auto" }}>
             {data.holdings.map((h, i) => (
               <div key={h.symbol} className="etf-holding-row">
                 <span className="etf-holding-rank text-muted">{i + 1}</span>
@@ -414,11 +419,9 @@ export function EtfPanel({ data }: { data: EtfData }) {
               </div>
             ))}
           </div>
-          {data.holdings.length > 0 && (
-            <p className="etf-holdings-note text-muted">
-              Concentración top 10: {data.holdings.reduce((s, h) => s + h.weight, 0).toFixed(1)}% del fondo
-            </p>
-          )}
+          <p className="etf-holdings-note text-muted">
+            Concentración total ({data.holdings.length} posiciones): {data.holdings.reduce((s, h) => s + h.weight, 0).toFixed(1)}% del fondo
+          </p>
         </div>
       )}
 
