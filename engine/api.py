@@ -46,28 +46,49 @@ def cmd_load_ticker(conn, args):
 def cmd_fundamental(conn, args):
     ticker = args["ticker"].upper()
 
-    # ── Detectar ETF y derivar a análisis especializado ───────────────────
-    from engine.data.fetcher_etf import fetch_etf
-    etf_data = fetch_etf(ticker)
-    if etf_data is not None:
-        _ok(etf_data)
+    # ── Detectar ETF via DB primero (evita llamada extra a yfinance) ──────
+    company_row = get_company(conn, ticker)
+    is_etf_cached = company_row and company_row.get("sector") == "ETF"
+
+    if is_etf_cached:
+        from engine.data.fetcher_etf import fetch_etf
+        try:
+            etf_data = fetch_etf(ticker)
+        except Exception as e:
+            etf_data = None
+            print(f"[fundamental] fetch_etf error: {e}", file=sys.stderr)
+
+        if etf_data is not None:
+            _ok(etf_data)
+            return
+        # Si fetch_etf falla, devolvemos error claro en vez de panel vacío
+        _err(f"No se pudo obtener datos del ETF {ticker}. Intenta en unos segundos.")
         return
 
+    # ── Fallback: detectar ETF via yfinance si no está en DB ─────────────
+    from engine.data.fetcher_etf import fetch_etf
+    try:
+        etf_data = fetch_etf(ticker)
+        if etf_data is not None:
+            _ok(etf_data)
+            return
+    except Exception:
+        pass
+
     # ── Análisis fundamental de acción ────────────────────────────────────
-    company = get_company(conn, ticker)
-    ratios  = calculate_and_save_ratios(conn, ticker)
-    dcf     = run_dcf(conn, ticker)
-    score   = run_scoring(conn, ticker)
+    ratios = calculate_and_save_ratios(conn, ticker)
+    dcf    = run_dcf(conn, ticker)
+    score  = run_scoring(conn, ticker)
 
     if ratios and "period_end" in ratios:
         ratios["period_end"] = str(ratios["period_end"])
 
-    if company and "updated_at" in company:
-        company["updated_at"] = str(company["updated_at"])
+    if company_row and "updated_at" in company_row:
+        company_row["updated_at"] = str(company_row["updated_at"])
 
     _ok({
         "quote_type": "EQUITY",
-        "company":  company,
+        "company":  company_row,
         "ratios":   ratios,
         "dcf":      dcf,
         "scoring":  score,

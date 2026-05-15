@@ -1,18 +1,117 @@
+/* ── Header row ───────────────────────────────────────────── */
+.etf-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.etf-index-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+/* ── Precio principal ─────────────────────────────────────── */
+.etf-price-block {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.etf-price-main {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+
+.etf-nav-row {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* ── 52-week range ────────────────────────────────────────── */
+.etf-52w-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  font-size: 12px;
+}
+
+.etf-52w-track {
+  flex: 1;
+  height: 6px;
+  background: var(--bg-elevated);
+  border-radius: 3px;
+  position: relative;
+  overflow: visible;
+  min-width: 80px;
+}
+
+.etf-52w-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent-dim), var(--accent));
+}
+
+.etf-52w-thumb {
+  position: absolute;
+  top: -4px;
+  width: 12px;
+  height: 14px;
+  background: var(--text-primary);
+  border-radius: 3px;
+  z-index: 1;
+}
+
 /* ── Expense ratio big number ──────────────────────────────── */
 .etf-cost-main {
   margin-bottom: 4px;
 }
 
 .etf-cost-er {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 800;
   letter-spacing: -0.01em;
+}
+
+/* ── Alternativas ─────────────────────────────────────────── */
+.etf-alts-block {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.etf-alts-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.etf-alts-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.etf-alt-chip {
+  font-size: 11px;
+  padding: 2px 8px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
 }
 
 /* ── Bar genérica ─────────────────────────────────────────── */
 .etf-bar-track {
   flex: 1;
-  height: 8px;
+  height: 7px;
   background: var(--bg-elevated);
   border-radius: 4px;
   overflow: hidden;
@@ -34,7 +133,7 @@
 
 .etf-alloc-row {
   display: grid;
-  grid-template-columns: 72px 1fr 46px;
+  grid-template-columns: 64px 1fr 46px;
   align-items: center;
   gap: 10px;
   font-size: 13px;
@@ -60,15 +159,20 @@
 
 .etf-holding-row {
   display: grid;
-  grid-template-columns: 60px 1fr 120px 56px;
+  grid-template-columns: 22px 64px 1fr 120px 58px;
   align-items: center;
-  gap: 12px;
-  padding: 7px 0;
+  gap: 10px;
+  padding: 6px 0;
   border-bottom: 1px solid var(--border);
   font-size: 13px;
 }
 
 .etf-holding-row:last-child { border-bottom: none; }
+
+.etf-holding-rank {
+  font-size: 11px;
+  text-align: right;
+}
 
 .etf-holding-symbol {
   font-size: 13px;
@@ -90,6 +194,12 @@
   color: var(--text-primary);
 }
 
+.etf-holdings-note {
+  font-size: 11px;
+  margin-top: 10px;
+  text-align: right;
+}
+
 /* ── Sectores ─────────────────────────────────────────────── */
 .etf-sectors-list {
   display: flex;
@@ -99,7 +209,7 @@
 
 .etf-sector-row {
   display: grid;
-  grid-template-columns: 180px 1fr 48px;
+  grid-template-columns: 180px 1fr 50px;
   align-items: center;
   gap: 12px;
   font-size: 13px;
@@ -120,11 +230,12 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  flex-wrap: wrap;
   margin-bottom: 12px;
 }
 
 .etf-verdict-badge {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 800;
   border: 2px solid;
   border-radius: 6px;
@@ -136,10 +247,15 @@
   font-size: 13px;
 }
 
+.etf-verdict-alts {
+  font-size: 12px;
+  margin-left: auto;
+}
+
 .etf-verdict-notes {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 
 .etf-verdict-note {
