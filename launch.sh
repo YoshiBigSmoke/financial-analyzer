@@ -1,8 +1,8 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 
-# Arranca Vite preview en puerto 1420 (sirve dist/)
-npx vite preview --port 1420 --strictPort &
+# Arranca Vite preview (puerto y no-cache definidos en vite.config.ts)
+npx vite preview &
 VITE_PID=$!
 
 # Espera a que el servidor esté listo

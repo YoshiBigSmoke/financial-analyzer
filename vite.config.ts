@@ -12,6 +12,13 @@ export default defineConfig(async () => ({
     },
   },
   envPrefix: ["VITE_", "TAURI_ENV_*"],
+  preview: {
+    port: 1420,
+    strictPort: true,
+    headers: {
+      "Cache-Control": "no-store",
+    },
+  },
   build: {
     target: "chrome105",
     minify: !process.env.TAURI_ENV_DEBUG ? "esbuild" : false,
